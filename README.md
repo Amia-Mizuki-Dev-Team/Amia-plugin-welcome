@@ -1,34 +1,59 @@
 # Amia-plugin-welcome
 
-`Amia-plugin-welcome` 是 Mizuki Bot 的群成员加入/离开提示插件。
+`Amia-plugin-welcome` 是 Mizuki Bot 的群成员加入与离开提示插件。
 
-当前仓库代码仍是旧版普通 OneBot V11 实现；项目下一阶段目标是兼容 `Te-River/Gensokyo-NewQQ Release006` 的 `CQ:member + CQ:markdown` 回复机制。README 将当前实现与目标实现分开说明，避免误认为 Release006 方案已经上线。
+当前仓库仍是旧版 OneBot V11 实现；下一阶段目标是适配 `Te-River/Gensokyo-NewQQ Release006` 的成员事件与 Markdown 回复机制。
+
+本文将“当前已经运行的功能”和“后续目标实现”分开说明，避免开发者把规划内容误认为现状。
+
+## 插件作用
+
+```text
+群成员加入 / 离开事件
+          ↓
+Amia-plugin-welcome
+          ↓
+欢迎或离开提示
+```
+
+本插件只负责成员事件提示，不负责：
+
+- qbind；
+- 入群审批；
+- 群权限管理；
+- 踢出判断；
+- 长篇群规和帮助菜单。
 
 ## 当前已实现
 
-监听事件：
+监听：
 
 ```text
 GroupIncreaseNoticeEvent
 GroupDecreaseNoticeEvent
 ```
 
-入群：
+### 入群
 
-- 忽略机器人自身加入事件。
-- 随机选择欢迎文案。
-- 使用 `MessageSegment.at(event.user_id)`。
-- 按概率读取本地图片，转换为 Base64 后发送。
+当前行为：
 
-离群：
+- 忽略机器人自身加入；
+- 随机选择欢迎文案；
+- 使用 `MessageSegment.at(event.user_id)`；
+- 按概率读取本地图片并转为 Base64 发送。
 
-- 忽略机器人自身离群事件。
-- 随机选择离群文案。
-- 统一显示“成员离开”，不区分主动退群、被踢或其他原因。
+### 离群
 
-## 当前配置位置
+当前行为：
 
-旧版配置直接写在 `__init__.py`：
+- 忽略机器人自身离群；
+- 随机选择离群文案；
+- 统一输出成员离开提示；
+- 不区分主动退群、管理员移除或其他原因。
+
+## 当前配置问题
+
+旧版配置仍直接写在 `__init__.py`：
 
 ```python
 WELCOME_IMAGES = [
@@ -40,26 +65,27 @@ WELCOME_TEXTS = [...]
 LEAVE_TEXTS = [...]
 ```
 
-这套方式存在环境耦合：
+该实现存在以下问题：
 
-- 写死 Windows 绝对路径。
-- 文案修改必须改代码。
-- 无法按群设置开关和模板。
-- 图片读取会把整张文件转为 Base64，占用内存和消息体积。
+- 写死 Windows 绝对路径；
+- 修改文案必须改代码；
+- 无法按群控制开关和模板；
+- 图片全部转 Base64，增加内存和消息体积；
+- 缺少配置校验和测试。
 
-后续应迁移到 NoneBot 配置和可选模板文件。
+后续应迁移到 NoneBot 配置与独立模板文件。
 
-## Gensokyo-NewQQ 基线
+## Release006 适配基线
 
-目标兼容版本：
+目标版本：
 
 ```text
-https://github.com/Te-River/Gensokyo-NewQQ/releases/tag/Release006
+Te-River/Gensokyo-NewQQ Release006
 ```
 
-所有群成员事件和 Markdown 回复行为必须以 `Release006` 为基线，不使用主分支后续行为作为默认假设。
+成员事件和 Markdown 回复必须以 Release006 的实际行为为准，不使用主分支或其他版本行为作为默认假设。
 
-Gensokyo 配置需要启用相关事件：
+Gensokyo 侧需要启用：
 
 ```yaml
 text_intent:
@@ -67,13 +93,13 @@ text_intent:
   - "GroupMemberRemoveEventHandler"
 ```
 
-Release006 的成员事件消息中可能包含：
+成员事件消息中可能包含：
 
 ```text
 [CQ:member,type=add/remove,group_id=...,user_id=...]
 ```
 
-该原始 CQ 段用于事件回复路由，目标实现中不得随意丢弃。
+该原始 `CQ:member` 段用于事件回复路由。目标实现必须保留它，不能只提取 user_id 后重新发送普通消息。
 
 ## 目标消息结构
 
@@ -85,12 +111,18 @@ Release006 的成员事件消息中可能包含：
 + CQ:markdown
 ```
 
-示例结构：
+示例：
 
 ```text
 [CQ:member,type=add,group_id=...,user_id=...]
 [CQ:at,qq=<user_id>]
 [CQ:markdown,data=<Base64 JSON>]
+```
+
+推荐用户可见文案：
+
+```text
+欢迎新成员 @xxx 加入群聊！
 ```
 
 ### 离群
@@ -100,21 +132,21 @@ Release006 的成员事件消息中可能包含：
 + CQ:markdown
 ```
 
-示例结构：
+示例：
 
 ```text
 [CQ:member,type=remove,group_id=...,user_id=...]
 [CQ:markdown,data=<Base64 JSON>]
 ```
 
-离群默认不 at，因为成员已经不在群中。
+离群默认不 at，因为成员已经不在群内。
 
 ## 离群事件规则
 
-在当前 Gensokyo-NewQQ 场景中，不可靠区分：
+在当前 Gensokyo-NewQQ 场景中，无法可靠区分：
 
-- 主动退群。
-- 管理员移除。
+- 主动退出；
+- 管理员移除；
 - 其他成员减少原因。
 
 因此统一输出：
@@ -130,11 +162,11 @@ operator_id
 sub_type
 ```
 
-不得输出未经确认的“被踢”或“主动退出”。
+不得输出未经确认的“被踢出”或“主动退群”。
 
 ## 身份边界
 
-Welcome 事件直接使用：
+Welcome 直接使用事件字段：
 
 ```text
 event.self_id
@@ -142,9 +174,11 @@ event.group_id
 event.user_id
 ```
 
-本插件不需要 qbind，也不应因为用户未绑定而拒绝欢迎或离群提示。
+本插件不需要 qbind，也不能因为用户没有绑定 canonical ID 而拒绝发送欢迎或离群消息。
 
-## 目标配置建议
+## 目标配置
+
+第一阶段建议配置：
 
 ```env
 AMIA_WELCOME_ENABLED=true
@@ -153,7 +187,7 @@ AMIA_WELCOME_IMAGE_PROBABILITY=0
 AMIA_WELCOME_MARKDOWN=true
 ```
 
-后续可扩展群级配置：
+后续可以增加简单群级配置：
 
 ```yaml
 groups:
@@ -163,9 +197,9 @@ groups:
     welcome_template: default
 ```
 
-第一版不要引入复杂数据库；JSON/YAML 配置即可。
+第一版不需要数据库。JSON 或 YAML 配置已经足够。
 
-## 推荐目录拆分
+## 推荐目录
 
 ```text
 __init__.py
@@ -182,42 +216,77 @@ tests/
 
 职责：
 
-- `config.py`：开关和模板配置。
-- `renderer.py`：Markdown JSON、Base64 和 CQ 组装。
-- `events.py`：入群/离群事件处理。
-- `templates/`：用户可见文案。
+- `config.py`：全局和群级配置；
+- `renderer.py`：Markdown JSON、Base64 和 CQ 拼接；
+- `events.py`：成员加入与离开事件；
+- `templates/`：用户可见文案；
+- `tests/`：事件和渲染测试。
+
+## 目标处理流程
+
+```text
+收到成员事件
+      ↓
+确认不是机器人自身
+      ↓
+读取群级与全局开关
+      ↓
+保留原始 CQ:member
+      ↓
+渲染 Markdown JSON
+      ↓
+Base64 编码
+      ↓
+按固定顺序组合 CQ 段并发送
+```
+
+图片不存在或 Markdown 渲染失败时，应有明确降级策略，至少不能让整个事件处理器崩溃。
 
 ## 测试要求
 
-至少覆盖：
+必须覆盖：
 
-- 机器人自身加入/离开时跳过。
-- 入群消息顺序为 `member + at + markdown`。
-- 离群消息顺序为 `member + markdown`。
-- 原始 `event.message` 被保留。
-- 离群不判断被踢。
-- Markdown JSON 可被 Base64 解码。
-- 模板中的特殊字符不会破坏 JSON。
-- 图片不存在时仍能发送纯 Markdown。
-- 配置关闭时不发送。
+- 机器人自身加入时跳过；
+- 机器人自身离开时跳过；
+- 入群顺序为 `member + at + markdown`；
+- 离群顺序为 `member + markdown`；
+- 原始 `CQ:member` 被保留；
+- 离群不判断被踢；
+- Markdown JSON 可以正确 Base64 解码；
+- 特殊字符不会破坏 JSON；
+- 图片缺失时可以降级；
+- 配置关闭时不发送；
+- 群级配置不会影响其他群。
 
 ## 当前与目标差距
 
-当前代码仍需要后续重构：
+当前代码尚未完成：
 
-- 尚未保留 `CQ:member`。
-- 尚未构造 `CQ:markdown`。
-- 仍使用硬编码本地图片路径。
-- 事件 matcher 仍是两个宽泛的 `on_notice()`。
-- 缺少配置类和测试。
+- 保留原始 `CQ:member`；
+- 构造 `CQ:markdown`；
+- 配置类；
+- 模板文件；
+- 群级开关；
+- 自动化测试；
+- 移除硬编码图片路径。
 
-Codex 后续应按上述边界重构，但不要恢复踢出判断，也不要接入 qbind。
+因此当前仓库不能宣称已经完成 Release006 Markdown 适配。
+
+## 推荐开发顺序
+
+1. 固定 Release006 事件样本；
+2. 拆分配置、渲染和事件处理；
+3. 实现并测试 `CQ:member` 保留；
+4. 实现 Markdown JSON 和 Base64；
+5. 增加入群与离群测试；
+6. 移除绝对路径；
+7. 最后增加群级模板配置。
 
 ## 维护边界
 
-- 不把本地图片绝对路径写进公共默认配置。
-- 不在欢迎消息中堆放完整群规和帮助文本。
-- 详细说明交给 Help 插件或文档站。
-- 不根据不可靠字段判断离群原因。
-- 不使用非 Release006 行为作为当前兼容承诺。
+- 不把本地绝对路径写进公共默认配置；
+- 不接入 qbind；
+- 不判断主动离群或被踢；
+- 不在欢迎消息中堆放完整群规；
+- 不使用非 Release006 行为作为兼容承诺；
 - 当前仓库尚未确定公开许可证。
