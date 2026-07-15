@@ -9,18 +9,11 @@ from nonebot.adapters.onebot.v11 import (
     MessageSegment
 )
 
+from .config import IMAGE_PROBABILITY, WELCOME_IMAGES
+
 # ================= ⚙️ 配置区域 =================
 
-# 1. 本地图片路径列表 (Windows 路径)
-WELCOME_IMAGES = [
-    r"D:\HongXingBot\1.jpg", 
-    # r"D:\HongXingBot\2.jpg", 
-]
-
-# 2. 发送图片的概率 (1.0 = 每次必发)
-IMAGE_PROBABILITY = 1.0  
-
-# 3. 进群欢迎文案 (Mizuki 风格)
+# 进群欢迎文案 (Mizuki 风格)
 WELCOME_TEXTS = [
     "呀，又有新朋友加入了呢！欢迎来到这里，不用太拘束，尽情聊天吧♪",
     "哼哼~ 欢迎加入！这里有很多有趣的人哦，希望能和你好好相处呢☆",
@@ -95,7 +88,7 @@ async def _(bot: Bot, event: GroupIncreaseNoticeEvent):
                 msg += MessageSegment.image(b64_img)
                 logger.info(f"正在发送欢迎图片(Base64模式): {img_path_str}")
             else:
-                logger.warning(f"欢迎插件警告: Windows路径下找不到图片 {img_path_str}")
+                logger.warning(f"欢迎插件警告: 找不到图片 {img_path_str}")
         except Exception as e:
             logger.error(f"欢迎插件图片处理错误: {e}")
 

@@ -2,7 +2,7 @@
 
 `Amia-plugin-welcome` 是 Mizuki Bot 的群成员加入与离开提示插件。
 
-当前仓库仍是旧版 OneBot V11 实现；下一阶段目标是适配 `Te-River/Gensokyo-NewQQ Release006` 的成员事件与 Markdown 回复机制。
+当前仓库仍是旧版 OneBot V11 实现；Gensokyo 成员事件与 Markdown 回复仍需按已部署版本的实际事件契约继续适配。
 
 本文将“当前已经运行的功能”和“后续目标实现”分开说明，避免开发者把规划内容误认为现状。
 
@@ -53,25 +53,28 @@ GroupDecreaseNoticeEvent
 
 ## 当前配置问题
 
-旧版配置仍直接写在 `__init__.py`：
+图片配置现在通过环境变量提供，默认不发送本地图片：
 
-```python
-WELCOME_IMAGES = [
-    r"D:\HongXingBot\1.jpg",
-]
-
-IMAGE_PROBABILITY = 1.0
-WELCOME_TEXTS = [...]
-LEAVE_TEXTS = [...]
+```env
+AMIA_WELCOME_IMAGES=data/welcome/1.jpg,data/welcome/2.jpg
+AMIA_WELCOME_IMAGE_PROBABILITY=0
 ```
 
 该实现存在以下问题：
 
-- 写死 Windows 绝对路径；
 - 修改文案必须改代码；
 - 无法按群控制开关和模板；
 - 图片全部转 Base64，增加内存和消息体积；
-- 缺少配置校验和测试。
+- 尚未按群配置开关和模板。
+
+配置路径使用逗号分隔，路径不存在时只记录警告，不会阻止文字欢迎消息发送。
+
+## 离线测试
+
+```bash
+python -m compileall -q .
+python -m unittest discover -s tests -v
+```
 
 后续应迁移到 NoneBot 配置与独立模板文件。
 
