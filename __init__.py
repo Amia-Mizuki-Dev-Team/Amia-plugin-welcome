@@ -87,6 +87,8 @@ def _build_message(
     avatar: str,
 ) -> Message:
     user_id = int(event.user_id)
+    member_type = "add" if isinstance(event, GroupIncreaseNoticeEvent) else "remove"
+    member_cq = f"[CQ:member,type={member_type},group_id={event.group_id},user_id={user_id}]"
     if isinstance(event, GroupIncreaseNoticeEvent):
         text = " " + random.choice(WELCOME_TEXTS)
     else:
@@ -98,7 +100,7 @@ def _build_message(
     md_b64 = base64.b64encode(md_data.encode("utf-8")).decode("utf-8")
     md_cq = f"[CQ:markdown,data={md_b64}]"
 
-    return Message(f"[CQ:at,qq={user_id}] {md_cq}")
+    return Message(f"{member_cq} [CQ:at,qq={user_id}] {md_cq}")
 
 
 @member_handler.handle()
