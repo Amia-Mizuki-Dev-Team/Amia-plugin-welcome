@@ -54,7 +54,7 @@ def _build_message(
         text = f" {name}已离开本群。"
 
     # Build markdown content with avatar image
-    md_content = f"{text}\n\n![]({avatar})"
+    md_content = f"{text}\n\n![#80px]({avatar})"
     md_data = json.dumps({"markdown": {"content": md_content}}, ensure_ascii=False)
     md_b64 = base64.b64encode(md_data.encode("utf-8")).decode("utf-8")
     md_cq = f"[CQ:markdown,data={md_b64}]"
