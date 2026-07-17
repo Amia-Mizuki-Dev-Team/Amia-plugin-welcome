@@ -38,17 +38,21 @@ GroupDecreaseNoticeEvent
 当前行为：
 
 - 忽略机器人自身加入；
-- 随机选择欢迎文案；
-- 使用 `MessageSegment.at(event.user_id)`；
-- 按概率读取本地图片并转为 Base64 发送。
+- 随机选择欢迎文案（Mizuki 风格 20 条）；
+- 使用 `[CQ:at,qq=<user_id>]` 作为独立段保留于 markdown 之前；
+- 调用 Gensokyo `get_avatar` API 获取正确头像 CDN 直链；
+- 使用 `[CQ:markdown,data=<Base64 JSON>]` 发送卡片消息；
+- Markdown 内容中头像图片置于顶部，指定 `#35px #35px` 尺寸，与 @ 并列；
+- 不发送本地图片。
 
 ### 离群
 
 当前行为：
 
 - 忽略机器人自身离群；
-- 随机选择离群文案；
-- 统一输出成员离开提示；
+- 随机选择离群文案（10 条）；
+- 使用 `[CQ:markdown]` 卡片消息；
+- 包含头像图片；
 - 不区分主动退群、管理员移除或其他原因。
 
 ## 当前配置问题
@@ -266,7 +270,6 @@ Base64 编码
 当前代码尚未完成：
 
 - 保留原始 `CQ:member`；
-- 构造 `CQ:markdown`；
 - 配置类；
 - 模板文件；
 - 群级开关；
